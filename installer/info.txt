@@ -1,0 +1,15 @@
+Pass CLI for Command Palette (unofficial)
+
+UNOFFICIAL. This extension is not affiliated with, endorsed by, or supported by Proton AG.
+"Proton" and "Proton Pass" are trademarks of their owners.
+
+This project is AI-generated code and has not had a professional security audit. It handles
+passwords and TOTP codes: review the source before installing.
+https://github.com/kud3n013/command-palette-pass-cli-extention
+
+PREREQUISITE: the Proton Pass CLI (pass-cli) is NOT included. Install it and log in first:
+
+    winget install --id Proton.ProtonPass.CLI --exact
+    pass-cli login
+
+After installing, open PowerToys Command Palette and run "Reload" so it picks up the extension.
