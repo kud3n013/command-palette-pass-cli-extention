@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "ProtonPassCliExtension (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "ProtonPassCliExtension (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
