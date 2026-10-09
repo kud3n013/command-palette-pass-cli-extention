@@ -1,9 +1,9 @@
 # Proton Pass (unofficial) for PowerToys Command Palette
 
 > **Unofficial. Not affiliated with, endorsed by, or supported by Proton AG.**
-> "Proton" and "Proton Pass" are trademarks of their owners. This project contains no Proton
-> logos or assets and does not bundle or redistribute the `pass-cli` binary. The only Proton artwork used is the product icon
-> described under "Icon" below.
+> "Proton" and "Proton Pass" are trademarks of their owners. The only Proton artwork used
+> is the product icon described under "Icon" below. This project does not bundle or redistribute the
+> `pass-cli` binary.
 
 A [PowerToys Command Palette](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview)
 extension that wraps the [Proton Pass CLI](https://protonpass.github.io/pass-cli/) (`pass-cli`) so you
