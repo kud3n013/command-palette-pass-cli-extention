@@ -59,6 +59,39 @@ internal sealed class SettingsManager : JsonSettingsManager
             ? Math.Clamp(n, 8, 128)
             : 20;
 
+    /// <summary>The vault picked in the list's filter, remembered across restarts (plain text; "" means all vaults).</summary>
+    public string? LastVault
+    {
+        get
+        {
+            try
+            {
+                return File.Exists(StatePath) ? File.ReadAllText(StatePath).Trim() : null;
+            }
+            catch (IOException)
+            {
+                return null;
+            }
+        }
+
+        set
+        {
+            try
+            {
+                File.WriteAllText(StatePath, value ?? string.Empty);
+            }
+            catch (IOException)
+            {
+                // Remembering the selection is a convenience; ignore a failed write.
+            }
+        }
+    }
+
+    /// <summary>Vault to preselect on first load: the remembered one, else the "Default vault" setting.</summary>
+    public string InitialVault => LastVault ?? DefaultVault;
+
+    private static string StatePath => Path.Combine(Path.GetDirectoryName(SettingsJsonPath())!, "last-vault.txt");
+
     private static string SettingsJsonPath()
     {
         var directory = Utilities.BaseSettingsPath("ProtonPassCliExtension");

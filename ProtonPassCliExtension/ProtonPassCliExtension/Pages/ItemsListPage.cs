@@ -20,9 +20,9 @@ internal sealed partial class ItemsListPage : ListPage
     private bool _loading;
     private bool _everLoaded;
     private bool _lastLoadFailed;
-    private bool _defaultVaultApplied;
+    private bool _filtersInitialised;
     private IReadOnlyList<CachedItem> _all = [];
-    private readonly VaultFilters _filters = new();
+    private VaultFilters _filters = new([], VaultFilters.AllId);
 
     public ItemsListPage(AppServices services)
     {
@@ -33,7 +33,7 @@ internal sealed partial class ItemsListPage : ListPage
         PlaceholderText = "Search your vault...";
         ShowDetails = false;
         Filters = _filters;
-        _filters.PropChanged += (_, _) => Rebuild();
+        _filters.PropChanged += OnFilterChanged;
 
         // New path or other settings: forget any failure and try again.
         _services.Settings.Changed += (_, _) => Refresh();
@@ -112,8 +112,7 @@ internal sealed partial class ItemsListPage : ListPage
             }
 
             _all = items;
-            _filters.SetVaults(items.Select(i => i.VaultName));
-            ApplyDefaultVault();
+            PublishFilters(items.Select(i => i.VaultName));
 
             if (items.Count == 0)
             {
@@ -141,21 +140,24 @@ internal sealed partial class ItemsListPage : ListPage
         }
     }
 
-    // Preselects the "Default vault" setting once; later filter changes by the user are left alone.
-    private void ApplyDefaultVault()
+    // The host reads the filter list when the page opens, which is before the first load finishes, and does not
+    // re-read an existing Filters object. So each load publishes a fresh one. The first selection comes from the
+    // remembered vault (or the "Default vault" setting); after that the current selection is carried over.
+    private void PublishFilters(IEnumerable<string> vaultNames)
     {
-        if (_defaultVaultApplied)
-        {
-            return;
-        }
+        var current = _filtersInitialised ? _filters.CurrentFilterId : _services.Settings.InitialVault;
+        _filtersInitialised = true;
 
-        _defaultVaultApplied = true;
-        var wanted = _services.Settings.DefaultVault;
-        var match = _filters.VaultNames.FirstOrDefault(n => n.Equals(wanted, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(wanted) && match is not null)
-        {
-            _filters.CurrentFilterId = match;
-        }
+        var next = new VaultFilters(vaultNames, current ?? VaultFilters.AllId);
+        next.PropChanged += OnFilterChanged;
+        _filters = next;
+        Filters = next;
+    }
+
+    private void OnFilterChanged(object? sender, IPropChangedEventArgs args)
+    {
+        _services.Settings.LastVault = _filters.CurrentFilterId ?? VaultFilters.AllId;
+        Rebuild();
     }
 
     private void Rebuild()

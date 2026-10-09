@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using ProtonPassCliExtension.Services;
@@ -20,22 +21,27 @@ internal sealed partial class GeneratePasswordCommand : InvokableCommand
 
     public override CommandResult Invoke()
     {
+        _ = Task.Run(RunAsync);
+        return CommandResult.Dismiss();
+    }
+
+    private async Task RunAsync()
+    {
         try
         {
-            var result = _services.Client.GeneratePasswordAsync(_services.Settings.GeneratedPasswordLength).GetAwaiter().GetResult();
+            var result = await _services.Client.GeneratePasswordAsync(_services.Settings.GeneratedPasswordLength).ConfigureAwait(false);
             if (!result.IsSuccess)
             {
-                StatusReporter.Show(result.Error!);
-                return CommandResult.KeepOpen();
+                new ToastStatusMessage(StatusReporter.Describe(result.Error!)).Show();
+                return;
             }
 
             _services.Clipboard.CopySecret(result.Value!, _services.Settings.ClipboardClearDelay);
-            return CommandResult.ShowToast("Generated password copied");
+            new ToastStatusMessage("Generated password copied").Show();
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {
-            StatusReporter.Show($"Generate password failed: {ex.Message}");
-            return CommandResult.KeepOpen();
+            new ToastStatusMessage($"Generate password failed: {ex.Message}").Show();
         }
     }
 }

@@ -11,8 +11,9 @@ using ProtonPassCliExtension.Services;
 namespace ProtonPassCliExtension.Commands;
 
 /// <summary>
-/// Base for actions on one item. Secrets are fetched here, at invocation time, and handed straight
-/// to the clipboard service. Nothing is logged and no secret reaches a status message.
+/// Base for actions on one item. The palette is dismissed immediately and the work (a ~0.5 s pass-cli call)
+/// finishes in the background, reporting through a toast. Secrets are fetched here, at invocation time,
+/// and handed straight to the clipboard service. Nothing is logged and no secret reaches a message.
 /// </summary>
 internal abstract partial class ItemCommand : InvokableCommand
 {
@@ -28,114 +29,134 @@ internal abstract partial class ItemCommand : InvokableCommand
 
     public sealed override CommandResult Invoke()
     {
+        _ = Task.Run(RunSafelyAsync);
+        return CommandResult.Dismiss();
+    }
+
+    protected abstract Task RunAsync();
+
+    protected static void Toast(string message) => new ToastStatusMessage(message).Show();
+
+    protected static void Toast(PassCliError error) => Toast(StatusReporter.Describe(error));
+
+    protected void CopyAndToast(string secret, string what)
+    {
+        Services.Clipboard.CopySecret(secret, Services.Settings.ClipboardClearDelay);
+        Toast(what + " copied");
+    }
+
+    private async Task RunSafelyAsync()
+    {
         try
         {
-            return Run();
+            await RunAsync().ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException or OperationCanceledException)
         {
             // Messages from these exception types describe the OS failure and never contain item values.
-            StatusReporter.Show($"{Name} failed: {ex.Message}");
-            return CommandResult.KeepOpen();
+            Toast($"{Name} failed: {ex.Message}");
         }
     }
-
-    protected abstract CommandResult Run();
-
-    protected static CommandResult Fail(PassCliError error)
-    {
-        StatusReporter.Show(error);
-        return CommandResult.KeepOpen();
-    }
-
-    protected CommandResult CopyAndDismiss(string secret, string what)
-    {
-        Services.Clipboard.CopySecret(secret, Services.Settings.ClipboardClearDelay);
-        return CommandResult.ShowToast(what + " copied");
-    }
-
-    // Invoke is synchronous; the work is a short-lived child process, so block the invoking thread.
-    protected static T Wait<T>(Task<T> task) => task.GetAwaiter().GetResult();
 }
 
-internal sealed partial class CopyPasswordCommand : ItemCommand
+/// <summary>Fetches one secret field and copies it.</summary>
+internal abstract partial class CopyFieldCommand : ItemCommand
+{
+    private readonly string _what;
+
+    protected CopyFieldCommand(AppServices services, CachedItem item, string name, string what, string glyph)
+        : base(services, item)
+    {
+        _what = what;
+        Name = name;
+        Icon = new IconInfo(glyph);
+    }
+
+    protected abstract Task<PassCliResult<string>> FetchAsync();
+
+    protected sealed override async Task RunAsync()
+    {
+        var result = await FetchAsync().ConfigureAwait(false);
+        if (result.IsSuccess)
+        {
+            CopyAndToast(result.Value!, _what);
+        }
+        else
+        {
+            Toast(result.Error!);
+        }
+    }
+}
+
+internal sealed partial class CopyPasswordCommand : CopyFieldCommand
 {
     public CopyPasswordCommand(AppServices services, CachedItem item)
-        : base(services, item)
+        : base(services, item, "Copy password", "Password", "")
     {
-        Name = "Copy password";
-        Icon = new IconInfo("");
     }
 
-    protected override CommandResult Run()
-    {
-        var result = Wait(Services.Client.GetFieldAsync(Item.ShareId, Item.ItemId, "password"));
-        return result.IsSuccess ? CopyAndDismiss(result.Value!, "Password") : Fail(result.Error!);
-    }
+    protected override Task<PassCliResult<string>> FetchAsync() =>
+        Services.Client.GetFieldAsync(Item.ShareId, Item.ItemId, "password");
 }
 
-internal sealed partial class CopyUsernameCommand : ItemCommand
+internal sealed partial class CopyUsernameCommand : CopyFieldCommand
 {
     public CopyUsernameCommand(AppServices services, CachedItem item)
-        : base(services, item)
+        : base(services, item, "Copy username", "Username", "")
     {
-        Name = "Copy username";
-        Icon = new IconInfo("");
     }
 
-    protected override CommandResult Run()
-    {
-        var result = Wait(Services.Client.GetUsernameAsync(Item.ShareId, Item.ItemId));
-        return result.IsSuccess ? CopyAndDismiss(result.Value!, "Username") : Fail(result.Error!);
-    }
+    protected override Task<PassCliResult<string>> FetchAsync() =>
+        Services.Client.GetUsernameAsync(Item.ShareId, Item.ItemId);
 }
 
-internal sealed partial class CopyEmailCommand : ItemCommand
+internal sealed partial class CopyEmailCommand : CopyFieldCommand
 {
     public CopyEmailCommand(AppServices services, CachedItem item)
-        : base(services, item)
+        : base(services, item, "Copy email", "Email", "")
     {
-        Name = "Copy email";
-        Icon = new IconInfo("");
     }
 
-    protected override CommandResult Run()
-    {
-        var result = Wait(Services.Client.GetFieldAsync(Item.ShareId, Item.ItemId, "email"));
-        return result.IsSuccess ? CopyAndDismiss(result.Value!, "Email") : Fail(result.Error!);
-    }
+    protected override Task<PassCliResult<string>> FetchAsync() =>
+        Services.Client.GetFieldAsync(Item.ShareId, Item.ItemId, "email");
 }
 
-internal sealed partial class CopyTotpCommand : ItemCommand
+internal sealed partial class CopyTotpCommand : CopyFieldCommand
 {
     public CopyTotpCommand(AppServices services, CachedItem item)
-        : base(services, item)
+        : base(services, item, "Copy TOTP code", "TOTP code", "")
     {
-        Name = "Copy TOTP code";
-        Icon = new IconInfo("");
     }
 
-    protected override CommandResult Run()
-    {
-        var result = Wait(Services.Client.GetTotpAsync(Item.ShareId, Item.ItemId));
-        return result.IsSuccess ? CopyAndDismiss(result.Value!, "TOTP code") : Fail(result.Error!);
-    }
+    protected override Task<PassCliResult<string>> FetchAsync() =>
+        Services.Client.GetTotpAsync(Item.ShareId, Item.ItemId);
 }
 
-internal sealed partial class CopyReferenceCommand : ItemCommand
+internal sealed partial class CopyReferenceCommand : InvokableCommand
 {
+    private readonly AppServices _services;
+    private readonly CachedItem _item;
+
     public CopyReferenceCommand(AppServices services, CachedItem item)
-        : base(services, item)
     {
+        _services = services;
+        _item = item;
         Name = "Copy pass:// reference";
         Icon = new IconInfo("");
     }
 
-    protected override CommandResult Run()
+    public override CommandResult Invoke()
     {
-        // The reference holds IDs only, no secret, so no auto-clear.
-        Services.Clipboard.CopySecret(PassReference.Build(Item.ShareId, Item.ItemId), TimeSpan.Zero);
-        return CommandResult.ShowToast("Reference copied");
+        try
+        {
+            // The reference holds IDs only, no secret, so no auto-clear. Nothing to wait for, so this stays synchronous.
+            _services.Clipboard.CopySecret(PassReference.Build(_item.ShareId, _item.ItemId), TimeSpan.Zero);
+            return CommandResult.ShowToast("Reference copied");
+        }
+        catch (Win32Exception ex)
+        {
+            return CommandResult.ShowToast($"Copy failed: {ex.Message}");
+        }
     }
 }
 
@@ -148,12 +169,13 @@ internal sealed partial class OpenItemUrlCommand : ItemCommand
         Icon = new IconInfo("");
     }
 
-    protected override CommandResult Run()
+    protected override async Task RunAsync()
     {
-        var result = Wait(Services.Client.GetUrlsAsync(Item.ShareId, Item.ItemId));
+        var result = await Services.Client.GetUrlsAsync(Item.ShareId, Item.ItemId).ConfigureAwait(false);
         if (!result.IsSuccess)
         {
-            return Fail(result.Error!);
+            Toast(result.Error!);
+            return;
         }
 
         foreach (var raw in result.Value!)
@@ -161,12 +183,11 @@ internal sealed partial class OpenItemUrlCommand : ItemCommand
             if (TryNormalise(raw, out var uri))
             {
                 Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
-                return CommandResult.Dismiss();
+                return;
             }
         }
 
-        StatusReporter.Show("This item has no web URL.", MessageState.Warning);
-        return CommandResult.KeepOpen();
+        Toast("This item has no web URL.");
     }
 
     // Only http(s) is opened, so an item can't make us launch arbitrary protocol handlers or files.
