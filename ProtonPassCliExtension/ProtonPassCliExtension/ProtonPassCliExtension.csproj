@@ -23,7 +23,7 @@
     <Content Include="Assets\Square44x44Logo.scale-200.png" />
     <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <Content Include="Assets\StoreLogo.png" />
-    <Content Include="Assets\ProtonPass.png" />
+    <Content Include="Assets\Icon.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
     <!-- Lets the loose-layout package registered with Add-AppxPackage -Register find its assets. -->
     <Content Update="Assets\*.png" CopyToOutputDirectory="PreserveNewest" />

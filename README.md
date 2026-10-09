@@ -135,8 +135,10 @@ The tests mock the process layer and use fake fixtures in `tests/fixtures/`; the
 
 ## Icon
 
-The extension icon (`Assets/ProtonPass.png` and the tile/splash assets) is an original keyhole
-design made for this project. It is not Proton's logo and does not imply any affiliation with Proton AG.
+The extension icon is an original keyhole design made for this project (source and exports in
+[`branding/icon/`](branding/icon); the shipped copies live in `ProtonPassCliExtension/ProtonPassCliExtension/Assets/`).
+It is covered by this project's [MIT license](LICENSE). It is not Proton's logo and does not imply any
+affiliation with Proton AG.
 
 ## License
 

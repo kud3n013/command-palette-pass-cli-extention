@@ -17,7 +17,7 @@ internal sealed partial class LoginFallbackItem : FallbackCommandItem
         : base(new NoOpCommand(), "Proton Pass login", "protonpass.fallback")
     {
         _services = services;
-        Icon = IconHelpers.FromRelativePath("Assets\\ProtonPass.png");
+        Icon = IconHelpers.FromRelativePath("Assets\\Icon.png");
     }
 
     public override void UpdateQuery(string query)
