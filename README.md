@@ -1,5 +1,10 @@
 # Proton Pass (unofficial) for PowerToys Command Palette
 
+> **⚠️ AI-generated code.** This project was written with the help of AI (Claude) and has not had a
+> professional security audit. It handles your passwords, usernames and TOTP codes, so **always read and
+> review the source code yourself before building or installing it**, and only install release binaries you
+> are willing to trust. Use at your own risk, under the terms of the [license](LICENSE).
+
 > **Unofficial. Not affiliated with, endorsed by, or supported by Proton AG.**
 > "Proton" and "Proton Pass" are trademarks of their owners. The only Proton artwork used
 > is the product icon described under "Icon" below. This project does not bundle or redistribute the
