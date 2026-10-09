@@ -13,7 +13,7 @@ can search your vault and copy passwords, usernames and TOTP codes without leavi
 - **Proton Pass** command: a searchable list of every active item across all your vaults
   (title, vault name, item type).
 - **Enter** copies the password (logins). Notes and other item types copy their `pass://` reference.
-- **Context menu** (`Ctrl+K`): copy username (falls back to email), copy TOTP code, open URL,
+- **Context menu** (`Ctrl+K`): copy username (falls back to email), copy email, copy TOTP code, open URL,
   copy `pass://` reference, refresh items.
 - **Clipboard auto-clear** after a configurable delay (default 20 s), only if the clipboard still
   contains what the extension put there. Copies are flagged so Windows keeps them out of clipboard
@@ -54,7 +54,7 @@ winget install --id Microsoft.WindowsSDK.10.0.26100 --exact
 **Debug** configuration and the **x64** platform with the **(Package)** launch profile, then use
 **Build > Deploy ProtonPassCliExtension**. Building alone does not register the package.
 
-**Command line** (build verified; the `Add-AppxPackage` registration step has **not been tested** by the author, so prefer Visual Studio's Deploy if it fails; `Remove-AppxPackage` undoes it):
+**Command line** (registration verified on Windows 11 with Developer Mode on; `Remove-AppxPackage` undoes it). The registered package points at the build output, so a rebuild updates it in place; if the build fails with a locked `ProtonPassCliExtension.exe`, stop that process first (Command Palette restarts it on Reload):
 
 ```powershell
 cd ProtonPassCliExtension
@@ -68,7 +68,7 @@ Command Palette does not notice a re-deployed package on its own.
 ## Usage
 
 1. Open Command Palette and run **Proton Pass**.
-2. Type to filter. `Enter` copies the password. `Ctrl+K` opens the other actions.
+2. Type to filter. `Enter` copies the password. `Ctrl+K` opens the other actions: copy username (`Ctrl+U`), copy email (`Ctrl+E`), copy TOTP code (`Ctrl+T`), open URL, copy `pass://` reference, refresh.
 3. Settings (Command Palette settings > Extensions > Proton Pass): path to `pass-cli`, clipboard clear
    delay in seconds (`0` disables), and item-list cache lifetime in seconds.
 

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using Windows.System;
 using ProtonPassCliExtension.Commands;
 using ProtonPassCliExtension.PassCli;
 using ProtonPassCliExtension.Services;
@@ -153,6 +154,8 @@ internal sealed partial class ItemsListPage : ListPage
         RaiseItemsChanged();
     }
 
+    private static KeyChord Shortcut(VirtualKey key) => KeyChordHelpers.FromModifiers(ctrl: true, alt: false, shift: false, vkey: (int)key, scanCode: 0);
+
     private ListItem Placeholder(string title, string subtitle) =>
         new(new RefreshCommand(this))
         {
@@ -171,8 +174,9 @@ internal sealed partial class ItemsListPage : ListPage
         var more = new List<IContextItem>();
         if (isLogin)
         {
-            more.Add(new CommandContextItem(new CopyUsernameCommand(_services, item)));
-            more.Add(new CommandContextItem(new CopyTotpCommand(_services, item)));
+            more.Add(new CommandContextItem(new CopyUsernameCommand(_services, item)) { RequestedShortcut = Shortcut(VirtualKey.U) });
+            more.Add(new CommandContextItem(new CopyEmailCommand(_services, item)) { RequestedShortcut = Shortcut(VirtualKey.E) });
+            more.Add(new CommandContextItem(new CopyTotpCommand(_services, item)) { RequestedShortcut = Shortcut(VirtualKey.T) });
             more.Add(new CommandContextItem(new OpenItemUrlCommand(_services, item)));
             more.Add(new CommandContextItem(new CopyReferenceCommand(_services, item)));
         }

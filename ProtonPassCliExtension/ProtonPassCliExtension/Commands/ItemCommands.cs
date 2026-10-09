@@ -90,6 +90,22 @@ internal sealed partial class CopyUsernameCommand : ItemCommand
     }
 }
 
+internal sealed partial class CopyEmailCommand : ItemCommand
+{
+    public CopyEmailCommand(AppServices services, CachedItem item)
+        : base(services, item)
+    {
+        Name = "Copy email";
+        Icon = new IconInfo("");
+    }
+
+    protected override CommandResult Run()
+    {
+        var result = Wait(Services.Client.GetFieldAsync(Item.ShareId, Item.ItemId, "email"));
+        return result.IsSuccess ? CopyAndDismiss(result.Value!, "Email") : Fail(result.Error!);
+    }
+}
+
 internal sealed partial class CopyTotpCommand : ItemCommand
 {
     public CopyTotpCommand(AppServices services, CachedItem item)
