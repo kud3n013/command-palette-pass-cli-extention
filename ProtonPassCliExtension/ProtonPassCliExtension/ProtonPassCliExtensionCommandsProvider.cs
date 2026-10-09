@@ -4,19 +4,27 @@
 
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using ProtonPassCliExtension.Pages;
+using ProtonPassCliExtension.Services;
 
 namespace ProtonPassCliExtension;
 
 public partial class ProtonPassCliExtensionCommandsProvider : CommandProvider
 {
+    private readonly AppServices _services = new();
     private readonly ICommandItem[] _commands;
 
     public ProtonPassCliExtensionCommandsProvider()
     {
-        DisplayName = "Proton Pass";
+        DisplayName = "Proton Pass (unofficial)";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
+        Settings = _services.Settings.Settings;
         _commands = [
-            new CommandItem(new ProtonPassCliExtensionPage()) { Title = DisplayName },
+            new CommandItem(new ItemsListPage(_services))
+            {
+                Title = "Proton Pass",
+                Subtitle = "Unofficial: search and copy from your vault",
+            },
         ];
     }
 
@@ -24,5 +32,4 @@ public partial class ProtonPassCliExtensionCommandsProvider : CommandProvider
     {
         return _commands;
     }
-
 }
