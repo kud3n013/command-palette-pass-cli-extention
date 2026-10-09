@@ -1,0 +1,6 @@
+{
+  "vaults": [
+    { "name": "Personal", "vault_id": "VAULTID-PERSONAL-REDACTED==", "share_id": "SHARE-PERSONAL-REDACTED==" },
+    { "name": "Work Équipe", "vault_id": "VAULTID-WORK-REDACTED==", "share_id": "-SHARE-WORK-REDACTED==" }
+  ]
+}

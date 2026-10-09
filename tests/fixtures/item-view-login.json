@@ -1,0 +1,12 @@
+{
+  "item": {
+    "id": "-ITEMID-2-REDACTED==", "share_id": "SHARE-PERSONAL-REDACTED==", "vault_id": "VAULTID-PERSONAL-REDACTED==",
+    "content": {
+      "title": "Café Zürich – 日本語", "note": "", "item_uuid": "UUID-REDACTED",
+      "content": { "Login": { "email": "user@example.invalid", "username": "", "password": "REDACTED-PASSWORD", "urls": ["https://example.invalid/login", "example.invalid"], "totp_uri": "otpauth://totp/REDACTED?secret=REDACTED", "passkeys": [], "autofill_urls": [] } },
+      "extra_fields": [], "platform_specific": null, "custom_icon": null
+    },
+    "state": "Active", "flags": [], "create_time": "2025-01-01T00:00:00Z", "modify_time": "2025-01-02T00:00:00Z"
+  },
+  "attachments": []
+}

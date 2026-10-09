@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>ProtonPassCliExtension.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <!--
+    The extension project is an MSIX-packaged WinExe, which is awkward to reference from a test
+    project. The toolkit-free logic is compiled in directly instead.
+  -->
+  <ItemGroup>
+    <Compile Include="..\ProtonPassCliExtension\PassCli\**\*.cs" LinkBase="PassCli" />
+    <Compile Include="..\ProtonPassCliExtension\Services\ClipboardService.cs" LinkBase="Services" />
+    <Compile Include="..\ProtonPassCliExtension\Services\IClipboard.cs" LinkBase="Services" />
+    <Compile Include="..\ProtonPassCliExtension\Services\ItemCache.cs" LinkBase="Services" />
+    <Compile Include="..\ProtonPassCliExtension\Services\ItemLoader.cs" LinkBase="Services" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\tests\fixtures\*.json" LinkBase="fixtures" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

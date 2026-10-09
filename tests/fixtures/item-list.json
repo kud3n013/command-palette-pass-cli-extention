@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "id": "ITEMID-1-REDACTED==", "share_id": "SHARE-PERSONAL-REDACTED==", "vault_id": "VAULTID-PERSONAL-REDACTED==", "state": "Active", "flags": [], "create_time": "2025-01-01T00:00:00Z", "modify_time": "2025-01-02T00:00:00Z", "title": "Example Login", "item_type": "login" },
+    { "id": "-ITEMID-2-REDACTED==", "share_id": "SHARE-PERSONAL-REDACTED==", "vault_id": "VAULTID-PERSONAL-REDACTED==", "state": "Active", "flags": ["ItemHasFiles", "ItemHasHadFiles"], "create_time": "2025-01-01T00:00:00Z", "modify_time": "2025-01-02T00:00:00Z", "title": "Café Zürich – 日本語", "item_type": "login" },
+    { "id": "ITEMID-3-REDACTED==", "share_id": "SHARE-PERSONAL-REDACTED==", "vault_id": "VAULTID-PERSONAL-REDACTED==", "state": "Active", "flags": [], "create_time": "2025-01-01T00:00:00Z", "modify_time": "2025-01-02T00:00:00Z", "title": "Secret note", "item_type": "note" }
+  ]
+}

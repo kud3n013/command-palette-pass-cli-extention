@@ -1,0 +1,4 @@
+{
+  "totp": "000000",
+  "totp_uri": "otpauth://totp/REDACTED?secret=REDACTED"
+}
