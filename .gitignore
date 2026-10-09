@@ -26,3 +26,4 @@ TestResults/
 # Installer build output
 Installer/
 publish/
+artifacts/

@@ -1,5 +1,7 @@
 <Project>
   <PropertyGroup>
+    <!-- Single source of truth for the release version (tags are v<Version>). scripts/check-version.ps1 verifies the rest. -->
+    <Version>1.0.0</Version>
     <Platforms>x64;ARM64</Platforms>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>Recommended</AnalysisMode>
