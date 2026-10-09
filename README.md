@@ -2,7 +2,8 @@
 
 > **Unofficial. Not affiliated with, endorsed by, or supported by Proton AG.**
 > "Proton" and "Proton Pass" are trademarks of their owners. This project contains no Proton
-> logos or assets and does not bundle or redistribute the `pass-cli` binary.
+> logos or assets and does not bundle or redistribute the `pass-cli` binary. The only Proton artwork used is the product icon
+> described under "Icon" below.
 
 A [PowerToys Command Palette](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview)
 extension that wraps the [Proton Pass CLI](https://protonpass.github.io/pass-cli/) (`pass-cli`) so you
@@ -105,6 +106,12 @@ The tests mock the process layer and use fake fixtures in `tests/fixtures/`; the
   clear). That the "exclude from clipboard history / cloud sync" flags are honoured by Win+V has not been checked.
 - Behaviour inside Command Palette itself (list display, context menu, toasts, status messages, settings
   persistence via the toolkit's `JsonSettingsManager`, clipboard clear) is built against the toolkit API but has not been verified end to end.
+
+## Icon
+
+The extension icon (`Assets/ProtonPass.png`) is the Proton Pass icon from the [Dashboard Icons](https://dashboardicons.com/icons/proton-pass)
+collection. The logo remains the property of Proton AG; it is used here only to identify the product this
+extension talks to and does not imply any affiliation. Remove or replace it if you redistribute this project.
 
 ## License
 

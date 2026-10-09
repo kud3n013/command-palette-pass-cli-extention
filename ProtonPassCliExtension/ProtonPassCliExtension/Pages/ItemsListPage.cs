@@ -24,7 +24,7 @@ internal sealed partial class ItemsListPage : ListPage
     public ItemsListPage(AppServices services)
     {
         _services = services;
-        Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
+        Icon = IconHelpers.FromRelativePath("Assets\\ProtonPass.png");
         Title = "Proton Pass (unofficial)";
         Name = "Open";
         PlaceholderText = "Search your vault...";
