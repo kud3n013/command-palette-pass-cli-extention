@@ -6,9 +6,8 @@
 > are willing to trust. Use at your own risk, under the terms of the [license](LICENSE).
 
 > **Unofficial. Not affiliated with, endorsed by, or supported by Proton AG.**
-> "Proton" and "Proton Pass" are trademarks of their owners. The only Proton artwork used
-> is the product icon described under "Icon" below. This project does not bundle or redistribute the
-> `pass-cli` binary.
+> "Proton" and "Proton Pass" are trademarks of their owners. This project uses its own original icon
+> (see "Icon" below) and does not bundle or redistribute the `pass-cli` binary.
 
 A [PowerToys Command Palette](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview)
 extension that wraps the [Proton Pass CLI](https://protonpass.github.io/pass-cli/) (`pass-cli`) so you
@@ -136,9 +135,8 @@ The tests mock the process layer and use fake fixtures in `tests/fixtures/`; the
 
 ## Icon
 
-The extension icon (`Assets/ProtonPass.png`) is the Proton Pass icon from the [Dashboard Icons](https://dashboardicons.com/icons/proton-pass)
-collection. The logo remains the property of Proton AG; it is used here only to identify the product this
-extension talks to and does not imply any affiliation. Remove or replace it if you redistribute this project.
+The extension icon (`Assets/ProtonPass.png` and the tile/splash assets) is an original keyhole-and-prompt
+design made for this project. It is not Proton's logo and does not imply any affiliation with Proton AG.
 
 ## License
 
