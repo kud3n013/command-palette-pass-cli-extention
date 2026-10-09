@@ -30,6 +30,7 @@ public class PassCliClientTests
     [InlineData("Error: Not logged in. Run 'pass-cli login'.")]
     [InlineData("error: you must log in first")]
     [InlineData("Error: session expired")]
+    [InlineData("[2m2026-10-09T10:55:06Z[0m [31mERROR[0m pass-cli/src/main.rs:335: Command is not logout there is no session Error: This operation requires an authenticated client")]
     public async Task LoginProblems_MapToNotLoggedIn(string stderr)
     {
         var client = FakeRunner.ClientFor(FakeRunner.Always(FakeRunner.Err(1, stderr)));

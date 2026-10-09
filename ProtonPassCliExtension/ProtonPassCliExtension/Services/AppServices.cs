@@ -12,7 +12,7 @@ internal sealed class AppServices
         Cache = new ItemCache();
         Loader = new ItemLoader(Client);
         Clipboard = new ClipboardService(new WindowsClipboard());
-        Settings.SettingsChanged += (_, _) => Cache.Invalidate();
+        Settings.Changed += (_, _) => Cache.Invalidate();
     }
 
     public SettingsManager Settings { get; }

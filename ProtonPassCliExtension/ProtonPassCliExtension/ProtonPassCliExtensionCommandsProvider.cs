@@ -18,7 +18,7 @@ public partial class ProtonPassCliExtensionCommandsProvider : CommandProvider
     {
         DisplayName = "Proton Pass (unofficial)";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
-        Settings = _services.Settings.Settings;
+        Settings = _services.Settings.CommandSettings;
         _commands = [
             new CommandItem(new ItemsListPage(_services))
             {

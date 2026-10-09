@@ -29,18 +29,22 @@ internal sealed class WindowsClipboard : IClipboard
 
         if (!OpenWithRetry())
         {
+            var error = Marshal.GetLastWin32Error();
             Free(textHandle, excludeMonitor, noHistory, noCloud);
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw new Win32Exception(error, "Could not open the clipboard (another app may be holding it).");
         }
 
         try
         {
             EmptyClipboard();
 
-            // On success the clipboard owns the memory; on failure we must free it.
+            // On success the clipboard owns the memory; on failure we must free it and report the failure,
+            // otherwise the caller would claim a copy that never happened.
             if (SetClipboardData(CfUnicodeText, textHandle) == IntPtr.Zero)
             {
+                var error = Marshal.GetLastWin32Error();
                 Free(textHandle);
+                throw new Win32Exception(error, "Could not place text on the clipboard.");
             }
 
             if (formatMonitor != 0 && SetClipboardData(formatMonitor, excludeMonitor) == IntPtr.Zero)

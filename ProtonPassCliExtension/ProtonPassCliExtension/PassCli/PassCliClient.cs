@@ -132,7 +132,8 @@ internal sealed class PassCliClient
     {
         var lower = stdErr.ToLowerInvariant();
 
-        // The exact not-logged-in wording is not documented, so match loosely (see README, "unverified").
+        // Real output with no session (pass-cli 2.4.2, exit 1): "...there is no session Error: This operation requires an authenticated client".
+        // The wording is undocumented, so match loosely.
         if (lower.Contains("not logged in")
             || lower.Contains("pass-cli login")
             || lower.Contains("log in")
@@ -140,6 +141,8 @@ internal sealed class PassCliClient
             || lower.Contains("unauthorized")
             || lower.Contains("not authenticated")
             || lower.Contains("authentication")
+            || lower.Contains("authenticated client")
+            || lower.Contains("no session")
             || (lower.Contains("session") && (lower.Contains("expired") || lower.Contains("invalid") || lower.Contains("no active"))))
         {
             return new PassCliError(PassCliErrorKind.NotLoggedIn, exitCode);

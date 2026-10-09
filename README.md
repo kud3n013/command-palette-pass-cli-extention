@@ -54,7 +54,7 @@ winget install --id Microsoft.WindowsSDK.10.0.26100 --exact
 **Debug** configuration and the **x64** platform with the **(Package)** launch profile, then use
 **Build > Deploy ProtonPassCliExtension**. Building alone does not register the package.
 
-**Command line:**
+**Command line** (build verified; the `Add-AppxPackage` registration step has **not been tested** by the author, so prefer Visual Studio's Deploy if it fails; `Remove-AppxPackage` undoes it):
 
 ```powershell
 cd ProtonPassCliExtension
@@ -98,10 +98,13 @@ The tests mock the process layer and use fake fixtures in `tests/fixtures/`; the
 
 ## Status / not verified
 
-- The exact wording `pass-cli` prints when you are not logged in is undocumented, so "not logged in"
-  detection is a loose text match on stderr and may need tuning.
+- "Not logged in" detection is a loose text match on stderr. It was checked against pass-cli 2.4.2 run with an
+  empty `PROTON_PASS_SESSION_DIR` ("This operation requires an authenticated client", exit code 1); other
+  versions or an expired (rather than missing) session may word it differently.
+- Win32 clipboard code was checked with a dummy string from a console app (set, read back, `Get-Clipboard`,
+  clear). That the "exclude from clipboard history / cloud sync" flags are honoured by Win+V has not been checked.
 - Behaviour inside Command Palette itself (list display, context menu, toasts, status messages, settings
-  persistence, clipboard clear) is built against the toolkit API but has not been verified end to end.
+  persistence via the toolkit's `JsonSettingsManager`, clipboard clear) is built against the toolkit API but has not been verified end to end.
 
 ## License
 

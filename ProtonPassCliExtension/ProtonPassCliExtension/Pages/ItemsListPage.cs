@@ -16,7 +16,9 @@ internal sealed partial class ItemsListPage : ListPage
     private readonly AppServices _services;
     private readonly object _gate = new();
     private IListItem[] _items = [];
-    private bool _started;
+    private bool _loading;
+    private bool _everLoaded;
+    private bool _lastLoadFailed;
 
     public ItemsListPage(AppServices services)
     {
@@ -26,19 +28,28 @@ internal sealed partial class ItemsListPage : ListPage
         Name = "Open";
         PlaceholderText = "Search your vault...";
         ShowDetails = false;
+
+        // New path or other settings: forget any failure and try again.
+        _services.Settings.Changed += (_, _) => Refresh();
     }
 
-    // GetItems is called often and must never start a process: it only returns what is already loaded.
+    // GetItems is called often and must never start a process itself. It returns what is already loaded
+    // and, at most, kicks off a background reload (first open, or the cache lifetime has passed).
+    // After a failed load it does not retry on its own; the placeholder row's Enter does.
     public override IListItem[] GetItems()
     {
-        bool shouldLoad;
+        var start = false;
         lock (_gate)
         {
-            shouldLoad = !_started;
-            _started = true;
+            if (!_loading && !_lastLoadFailed
+                && (!_everLoaded || !_services.Cache.TryGet(_services.Settings.CacheTtl, out _)))
+            {
+                _loading = true;
+                start = true;
+            }
         }
 
-        if (shouldLoad)
+        if (start)
         {
             _ = ReloadAsync(force: false);
         }
@@ -46,10 +57,21 @@ internal sealed partial class ItemsListPage : ListPage
         return _items;
     }
 
-    /// <summary>Drops the cache and reloads the item list.</summary>
+    /// <summary>Drops the cache and reloads the item list. Also clears a previous failure.</summary>
     public void Refresh()
     {
-        _services.Cache.Invalidate();
+        lock (_gate)
+        {
+            _services.Cache.Invalidate();
+            _lastLoadFailed = false;
+            if (_loading)
+            {
+                return;
+            }
+
+            _loading = true;
+        }
+
         _ = ReloadAsync(force: true);
     }
 
@@ -58,51 +80,93 @@ internal sealed partial class ItemsListPage : ListPage
         IsLoading = true;
         try
         {
+            IReadOnlyList<CachedItem> items;
             if (!force && _services.Cache.TryGet(_services.Settings.CacheTtl, out var cached))
             {
-                Publish(cached);
-                return;
+                items = cached;
+            }
+            else
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+                var result = await _services.Loader.LoadAsync(cts.Token).ConfigureAwait(false);
+                if (!result.IsSuccess)
+                {
+                    Fail(result.Error!);
+                    return;
+                }
+
+                items = result.Value!;
+                _services.Cache.Set(items);
             }
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-            var result = await _services.Loader.LoadAsync(cts.Token).ConfigureAwait(false);
-            if (!result.IsSuccess)
+            lock (_gate)
             {
-                StatusReporter.Show(result.Error!);
-                Publish([]);
-                return;
+                _everLoaded = true;
+                _lastLoadFailed = false;
             }
 
-            _services.Cache.Set(result.Value!);
-            if (result.Value!.Count == 0)
+            if (items.Count == 0)
             {
+                _items = [Placeholder("No items found", "Your vaults are empty. Add items in Proton Pass, then press Enter to refresh.")];
                 StatusReporter.Show("No items found in your vaults.", MessageState.Warning);
             }
+            else
+            {
+                _items = items.Select(ToListItem).ToArray();
+                StatusReporter.Hide();
+            }
 
-            Publish(result.Value!);
+            RaiseItemsChanged();
         }
         catch (OperationCanceledException)
         {
-            StatusReporter.Show(new PassCliError(PassCliErrorKind.Timeout));
+            Fail(new PassCliError(PassCliErrorKind.Timeout));
         }
         finally
         {
+            lock (_gate)
+            {
+                _loading = false;
+            }
+
             IsLoading = false;
         }
     }
 
-    private void Publish(IReadOnlyList<CachedItem> items)
+    private void Fail(PassCliError error)
     {
-        _items = items.Select(ToListItem).ToArray();
+        lock (_gate)
+        {
+            _lastLoadFailed = true;
+        }
+
+        var title = error.Kind switch
+        {
+            PassCliErrorKind.NotInstalled => "pass-cli not found",
+            PassCliErrorKind.NotLoggedIn => "Not logged in to Proton Pass",
+            PassCliErrorKind.Timeout => "pass-cli timed out",
+            _ => "Couldn't load Proton Pass items",
+        };
+
+        _items = [Placeholder(title, StatusReporter.Describe(error) + " Press Enter to retry.")];
+        StatusReporter.Show(error);
         RaiseItemsChanged();
     }
+
+    private ListItem Placeholder(string title, string subtitle) =>
+        new(new RefreshCommand(this))
+        {
+            Title = title,
+            Subtitle = subtitle,
+            Icon = new IconInfo(""),
+        };
 
     private IListItem ToListItem(CachedItem item)
     {
         var isLogin = item.ItemType == "login";
-        var primary = isLogin
+        ICommand primary = isLogin
             ? new CopyPasswordCommand(_services, item)
-            : (ICommand)new CopyReferenceCommand(_services, item);
+            : new CopyReferenceCommand(_services, item);
 
         var more = new List<IContextItem>();
         if (isLogin)
@@ -110,10 +174,6 @@ internal sealed partial class ItemsListPage : ListPage
             more.Add(new CommandContextItem(new CopyUsernameCommand(_services, item)));
             more.Add(new CommandContextItem(new CopyTotpCommand(_services, item)));
             more.Add(new CommandContextItem(new OpenItemUrlCommand(_services, item)));
-        }
-
-        if (isLogin)
-        {
             more.Add(new CommandContextItem(new CopyReferenceCommand(_services, item)));
         }
 

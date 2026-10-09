@@ -1,5 +1,7 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
@@ -24,10 +26,25 @@ internal abstract partial class ItemCommand : InvokableCommand
 
     protected CachedItem Item { get; }
 
+    public sealed override CommandResult Invoke()
+    {
+        try
+        {
+            return Run();
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException or OperationCanceledException)
+        {
+            // Messages from these exception types describe the OS failure and never contain item values.
+            StatusReporter.Show($"{Name} failed: {ex.Message}");
+            return CommandResult.KeepOpen();
+        }
+    }
+
+    protected abstract CommandResult Run();
+
     protected static CommandResult Fail(PassCliError error)
     {
-        var message = StatusReporter.Describe(error);
-        StatusReporter.Show(message);
+        StatusReporter.Show(error);
         return CommandResult.KeepOpen();
     }
 
@@ -50,7 +67,7 @@ internal sealed partial class CopyPasswordCommand : ItemCommand
         Icon = new IconInfo("");
     }
 
-    public override CommandResult Invoke()
+    protected override CommandResult Run()
     {
         var result = Wait(Services.Client.GetFieldAsync(Item.ShareId, Item.ItemId, "password"));
         return result.IsSuccess ? CopyAndDismiss(result.Value!, "Password") : Fail(result.Error!);
@@ -66,7 +83,7 @@ internal sealed partial class CopyUsernameCommand : ItemCommand
         Icon = new IconInfo("");
     }
 
-    public override CommandResult Invoke()
+    protected override CommandResult Run()
     {
         var result = Wait(Services.Client.GetUsernameAsync(Item.ShareId, Item.ItemId));
         return result.IsSuccess ? CopyAndDismiss(result.Value!, "Username") : Fail(result.Error!);
@@ -82,7 +99,7 @@ internal sealed partial class CopyTotpCommand : ItemCommand
         Icon = new IconInfo("");
     }
 
-    public override CommandResult Invoke()
+    protected override CommandResult Run()
     {
         var result = Wait(Services.Client.GetTotpAsync(Item.ShareId, Item.ItemId));
         return result.IsSuccess ? CopyAndDismiss(result.Value!, "TOTP code") : Fail(result.Error!);
@@ -98,7 +115,7 @@ internal sealed partial class CopyReferenceCommand : ItemCommand
         Icon = new IconInfo("");
     }
 
-    public override CommandResult Invoke()
+    protected override CommandResult Run()
     {
         // The reference holds IDs only, no secret, so no auto-clear.
         Services.Clipboard.CopySecret(PassReference.Build(Item.ShareId, Item.ItemId), TimeSpan.Zero);
@@ -115,7 +132,7 @@ internal sealed partial class OpenItemUrlCommand : ItemCommand
         Icon = new IconInfo("");
     }
 
-    public override CommandResult Invoke()
+    protected override CommandResult Run()
     {
         var result = Wait(Services.Client.GetUrlsAsync(Item.ShareId, Item.ItemId));
         if (!result.IsSuccess)
