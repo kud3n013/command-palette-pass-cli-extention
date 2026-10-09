@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ProtonPassCliExtension/ProtonPassCliExtension
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Publish
+        run: dotnet publish -c Release -r win-${{ matrix.arch }} -p:Platform=${{ matrix.arch }} -p:WindowsPackageType=None -p:PublishProfile= --self-contained true -o publish
+
+      - name: Create installer
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "/DArchitecturesAllowed=${{ matrix.arch }}" setup-template.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.arch }}
+          path: ProtonPassCliExtension/ProtonPassCliExtension/Installer/*.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" installers/*.exe --repo "${{ github.repository }}" --title "${{ github.ref_name }}" --generate-notes

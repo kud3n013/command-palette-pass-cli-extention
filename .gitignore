@@ -22,3 +22,7 @@ TestResults/
 .idea/
 ## Local scratch
 *.local.json
+
+# Installer build output
+Installer/
+publish/
