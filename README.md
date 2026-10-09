@@ -49,6 +49,20 @@ invoke an action.
   If `pass-cli` is not on `PATH`, add its folder to `PATH` or set the full path in the extension's settings.
   (winget normally places it under `%LOCALAPPDATA%\Microsoft\WinGet\Packages`.)
 
+## Install with winget
+
+```powershell
+winget install --id kud3n013.ProtonPassCliExtension --exact
+```
+
+Then open Command Palette and run `Reload` ("Reload Command Palette extensions"). This installs the unpackaged
+build per-user (no Developer Mode needed). You still need the Proton Pass CLI from the prerequisites above.
+
+> The winget package is not published yet: this command only works once the manifest has been merged into
+> [winget-pkgs](https://github.com/microsoft/winget-pkgs). Until then, download the installer for your
+> architecture from the [Releases](https://github.com/kud3n013/command-palette-pass-cli-extention/releases) page,
+> or build from source below.
+
 ## Build and install
 
 Requires the .NET 10 SDK and the Windows 11 SDK (10.0.26100):
