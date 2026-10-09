@@ -135,7 +135,7 @@ The tests mock the process layer and use fake fixtures in `tests/fixtures/`; the
 
 ## Icon
 
-The extension icon (`Assets/ProtonPass.png` and the tile/splash assets) is an original keyhole-and-prompt
+The extension icon (`Assets/ProtonPass.png` and the tile/splash assets) is an original keyhole
 design made for this project. It is not Proton's logo and does not imply any affiliation with Proton AG.
 
 ## License
