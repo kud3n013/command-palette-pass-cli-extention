@@ -133,6 +133,14 @@ The tests mock the process layer and use fake fixtures in `tests/fixtures/`; the
 - Behaviour inside Command Palette itself (list display, context menu, toasts, status messages, settings
   persistence via the toolkit's `JsonSettingsManager`, clipboard clear) is built against the toolkit API but has not been verified end to end.
 
+## Releasing
+
+Short version: bump `<Version>` in `ProtonPassCliExtension/Directory.Build.props` (and the matching versions
+`scripts/check-version.ps1` checks), commit, tag `vX.Y.Z`, push the tag. The Release workflow tests, builds the x64 and
+arm64 installers (`scripts/build-installer.ps1`), publishes the GitHub Release and generates the winget manifests. The
+first winget submission is manual; later ones are automatic once the `WINGET_TOKEN` secret is set. The full checklist,
+including how to handle each winget validation failure, is in [RELEASING.md](RELEASING.md).
+
 ## Icon
 
 The extension icon is an original keyhole design made for this project (source and exports in

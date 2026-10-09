@@ -1,55 +1,163 @@
 name: Release
 
+# Push a tag vX.Y.Z (it must equal <Version> in ProtonPassCliExtension/Directory.Build.props) to:
+#   build -> test, build the x64 + arm64 installers, verify tag == project version
+#   release -> create the GitHub Release, upload installers + SHA256SUMS.txt, and generate the winget manifests
+#              (with the SHA256 of the *uploaded* files) as a downloadable workflow artifact
+#   winget-update -> optional, see the comment on that job
+# workflow_dispatch is a dry run: it builds and generates manifests from the local build but publishes nothing.
+
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+env:
+  DOTNET_SDK_VERSION: '10.0.401'
+  # Pinned Inno Setup release, verified by SHA256 before it is run.
+  INNO_SETUP_VERSION: '6.7.3'
+  INNO_SETUP_SHA256: '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+  PACKAGE_ID: kud3n013.ProtonPassCliExtension
 
 jobs:
   build:
-    strategy:
-      matrix:
-        arch: [x64, arm64]
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: ProtonPassCliExtension/ProtonPassCliExtension
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: ${{ env.DOTNET_SDK_VERSION }}
 
       - name: Install Inno Setup
-        run: choco install innosetup -y --no-progress
-
-      - name: Publish
-        run: dotnet publish -c Release -r win-${{ matrix.arch }} -p:Platform=${{ matrix.arch }} -p:WindowsPackageType=None -p:PublishProfile= --self-contained true -o publish
-
-      - name: Create installer
+        shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}" -replace '^v', ''
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "/DArchitecturesAllowed=${{ matrix.arch }}" setup-template.iss
+          $url = "https://github.com/jrsoftware/issrc/releases/download/is-$($env:INNO_SETUP_VERSION -replace '\.','_')/innosetup-$env:INNO_SETUP_VERSION.exe"
+          $exe = Join-Path $env:RUNNER_TEMP "innosetup.exe"
+          Invoke-WebRequest -Uri $url -OutFile $exe
+          $actual = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $env:INNO_SETUP_SHA256) { throw "Inno Setup hash mismatch: $actual" }
+          Start-Process $exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER' -Wait
+
+      - name: Verify tag matches project version
+        id: version
+        shell: pwsh
+        run: |
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { '' }
+          $global:LASTEXITCODE = 0
+          $version = & ./scripts/check-version.ps1 -Tag $tag
+          if ($LASTEXITCODE -ne 0) { throw "Version check failed" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test ProtonPassCliExtension/ProtonPassCliExtension.sln -c Release -p:Platform=x64
+
+      - name: Build installers (x64 and arm64)
+        shell: pwsh
+        run: ./scripts/build-installer.ps1 -Platform all
 
       - uses: actions/upload-artifact@v4
         with:
-          name: installer-${{ matrix.arch }}
-          path: ProtonPassCliExtension/ProtonPassCliExtension/Installer/*.exe
+          name: installers
+          path: |
+            artifacts/ProtonPassCliExtension-*.exe
+            artifacts/SHA256SUMS.txt
+          if-no-files-found: error
 
   release:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
-          path: installers
-          merge-multiple: true
+          name: installers
+          path: artifacts
 
-      - name: Create GitHub release
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" installers/*.exe --repo "${{ github.repository }}" --title "${{ github.ref_name }}" --generate-notes
+        run: |
+          gh release create $env:GITHUB_REF_NAME `
+            "artifacts/ProtonPassCliExtension-${{ needs.build.outputs.version }}-x64.exe" `
+            "artifacts/ProtonPassCliExtension-${{ needs.build.outputs.version }}-arm64.exe" `
+            "artifacts/SHA256SUMS.txt" `
+            --verify-tag --title $env:GITHUB_REF_NAME --generate-notes
+
+      # On a tag this downloads the assets that were just uploaded and hashes those; on a dry run it hashes the
+      # local build (the release URLs in the manifests do not exist yet).
+      - name: Generate winget manifests
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            ./scripts/new-winget-manifest.ps1 -Version "${{ needs.build.outputs.version }}"
+          } else {
+            ./scripts/new-winget-manifest.ps1 -Version "${{ needs.build.outputs.version }}" -ArtifactsDir artifacts
+          }
+
+      - name: Validate winget manifests
+        shell: pwsh
+        run: |
+          # winget is not always present on runners; validate when it is.
+          if (Get-Command winget -ErrorAction SilentlyContinue) {
+            winget validate --manifest "winget/manifests/k/kud3n013/ProtonPassCliExtension/${{ needs.build.outputs.version }}"
+          } else {
+            Write-Host "winget not available on this runner; skipping validation"
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: winget-manifests${{ github.ref_type == 'tag' && '' || '-dry-run' }}
+          path: winget/manifests
+          if-no-files-found: error
+
+  # Submits an update PR to microsoft/winget-pkgs with `wingetcreate update`.
+  # It is skipped unless BOTH hold:
+  #   1. the repository secret WINGET_TOKEN exists (a classic PAT with public_repo, from your own account), and
+  #   2. the package already exists in winget-pkgs. The FIRST submission is manual: download the "winget-manifests"
+  #      artifact from the release run and open the PR yourself (see RELEASING.md).
+  winget-update:
+    needs: [build, release]
+    if: github.ref_type == 'tag'
+    runs-on: windows-latest
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check prerequisites
+        id: check
+        shell: pwsh
+        run: |
+          if (-not $env:WINGET_TOKEN) {
+            Write-Host "WINGET_TOKEN is not set; skipping winget update."
+            "run=false" >> $env:GITHUB_OUTPUT; return
+          }
+          gh api repos/microsoft/winget-pkgs/contents/manifests/k/kud3n013/ProtonPassCliExtension --silent 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "$env:PACKAGE_ID is not in winget-pkgs yet; submit the first version manually. Skipping."
+            "run=false" >> $env:GITHUB_OUTPUT; return
+          }
+          "run=true" >> $env:GITHUB_OUTPUT
+
+      - name: Update winget manifest
+        if: steps.check.outputs.run == 'true'
+        shell: pwsh
+        run: |
+          $version = "${{ needs.build.outputs.version }}"
+          $base = "https://github.com/${{ github.repository }}/releases/download/$env:GITHUB_REF_NAME"
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          # $env:WINGET_TOKEN is a secret and is masked in logs.
+          ./wingetcreate.exe update $env:PACKAGE_ID --version $version `
+            --urls "$base/ProtonPassCliExtension-$version-x64.exe|x64" "$base/ProtonPassCliExtension-$version-arm64.exe|arm64" `
+            --submit --token $env:WINGET_TOKEN
