@@ -12,8 +12,11 @@ param(
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-if (-not (Test-Path $iscc)) { throw "Inno Setup not found at $iscc (winget install JRSoftware.InnoSetup)" }
+$iscc = @(
+    "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $iscc) { throw "Inno Setup not found (winget install JRSoftware.InnoSetup)" }
 
 foreach ($arch in @("x64", "arm64")) {
     Write-Host "`n=== $arch ===" -ForegroundColor Cyan

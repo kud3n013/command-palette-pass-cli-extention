@@ -7,7 +7,8 @@
 #define MyAppPublisher "kud3n013"
 #define MyAppURL "https://github.com/kud3n013/command-palette-pass-cli-extention"
 ; Must match the [Guid] on ProtonPassCliExtension.cs
-#define MyAppCLSID "{c312420f-a811-4569-b608-4764363418cd}"
+; Leading "{{" is Inno's escape for a literal "{".
+#define MyAppCLSID "{{c312420f-a811-4569-b608-4764363418cd}"
 
 [Setup]
 AppId={#MyAppCLSID}
@@ -29,7 +30,8 @@ OutputDir=Installer
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; The SDK also copies project files (including earlier Installer\ output) into publish\; keep them out.
+Source: "publish\*"; DestDir: "{app}"; Excludes: "*.pdb,*.iss,*.ps1,Installer,Properties,Package.appxmanifest"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Registry]
 ; Register the out-of-process COM server so Command Palette can discover and launch the extension.
