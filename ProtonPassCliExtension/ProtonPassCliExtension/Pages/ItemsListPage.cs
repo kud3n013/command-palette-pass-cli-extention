@@ -20,6 +20,9 @@ internal sealed partial class ItemsListPage : ListPage
     private bool _loading;
     private bool _everLoaded;
     private bool _lastLoadFailed;
+    private bool _defaultVaultApplied;
+    private IReadOnlyList<CachedItem> _all = [];
+    private readonly VaultFilters _filters = new();
 
     public ItemsListPage(AppServices services)
     {
@@ -29,6 +32,8 @@ internal sealed partial class ItemsListPage : ListPage
         Name = "Open";
         PlaceholderText = "Search your vault...";
         ShowDetails = false;
+        Filters = _filters;
+        _filters.PropChanged += (_, _) => Rebuild();
 
         // New path or other settings: forget any failure and try again.
         _services.Settings.Changed += (_, _) => Refresh();
@@ -106,18 +111,20 @@ internal sealed partial class ItemsListPage : ListPage
                 _lastLoadFailed = false;
             }
 
+            _all = items;
+            _filters.SetVaults(items.Select(i => i.VaultName));
+            ApplyDefaultVault();
+
             if (items.Count == 0)
             {
-                _items = [Placeholder("No items found", "Your vaults are empty. Add items in Proton Pass, then press Enter to refresh.")];
                 StatusReporter.Show("No items found in your vaults.", MessageState.Warning);
             }
             else
             {
-                _items = items.Select(ToListItem).ToArray();
                 StatusReporter.Hide();
             }
 
-            RaiseItemsChanged();
+            Rebuild();
         }
         catch (OperationCanceledException)
         {
@@ -132,6 +139,38 @@ internal sealed partial class ItemsListPage : ListPage
 
             IsLoading = false;
         }
+    }
+
+    // Preselects the "Default vault" setting once; later filter changes by the user are left alone.
+    private void ApplyDefaultVault()
+    {
+        if (_defaultVaultApplied)
+        {
+            return;
+        }
+
+        _defaultVaultApplied = true;
+        var wanted = _services.Settings.DefaultVault;
+        var match = _filters.VaultNames.FirstOrDefault(n => n.Equals(wanted, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(wanted) && match is not null)
+        {
+            _filters.CurrentFilterId = match;
+        }
+    }
+
+    private void Rebuild()
+    {
+        var filter = _filters.CurrentFilterId;
+        var visible = string.IsNullOrEmpty(filter)
+            ? _all
+            : _all.Where(i => i.VaultName.Equals(filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        _items = visible.Count == 0
+            ? [Placeholder(
+                _all.Count == 0 ? "No items found" : "No items in this vault",
+                _all.Count == 0 ? "Your vaults are empty. Add items in Proton Pass, then press Enter to refresh." : "Choose another vault in the filter, or press Enter to refresh.")]
+            : visible.Select(ToListItem).ToArray();
+        RaiseItemsChanged();
     }
 
     private void Fail(PassCliError error)

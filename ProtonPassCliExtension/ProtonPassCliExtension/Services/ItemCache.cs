@@ -33,6 +33,15 @@ internal sealed class ItemCache
         return false;
     }
 
+    /// <summary>Whatever is cached, even if past its lifetime. Metadata only, so stale data is harmless here.</summary>
+    public IReadOnlyList<CachedItem> Peek()
+    {
+        lock (_gate)
+        {
+            return _items ?? [];
+        }
+    }
+
     public void Set(IReadOnlyList<CachedItem> items)
     {
         lock (_gate)

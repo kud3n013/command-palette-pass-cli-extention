@@ -13,6 +13,8 @@ internal sealed class SettingsManager : JsonSettingsManager
     private const string PathId = "cliPath";
     private const string ClearDelayId = "clipboardClearSeconds";
     private const string CacheTtlId = "cacheTtlSeconds";
+    private const string DefaultVaultId = "defaultVault";
+    private const string PasswordLengthId = "generatedPasswordLength";
 
     public SettingsManager()
     {
@@ -21,6 +23,9 @@ internal sealed class SettingsManager : JsonSettingsManager
         Settings.Add(new TextSetting(PathId, "Path to pass-cli", "Leave as 'pass-cli' to use PATH, or enter a full path to pass-cli.exe.", "pass-cli"));
         Settings.Add(new TextSetting(ClearDelayId, "Clipboard clear delay (seconds)", "Clears copied secrets after this many seconds. 0 disables auto-clear.", "20"));
         Settings.Add(new TextSetting(CacheTtlId, "Item list cache (seconds)", "How long item titles are cached before reloading. Secrets are never cached.", "300"));
+
+        Settings.Add(new TextSetting(DefaultVaultId, "Default vault", "Name of the vault to show first in the list. Leave empty to show all vaults.", string.Empty));
+        Settings.Add(new TextSetting(PasswordLengthId, "Generated password length", "Length used by the Generate password command (8 to 128).", "20"));
 
         LoadSettings();
         Settings.SettingsChanged += (_, _) =>
@@ -46,6 +51,13 @@ internal sealed class SettingsManager : JsonSettingsManager
     public TimeSpan ClipboardClearDelay => TimeSpan.FromSeconds(ReadSeconds(ClearDelayId, 20));
 
     public TimeSpan CacheTtl => TimeSpan.FromSeconds(ReadSeconds(CacheTtlId, 300));
+
+    public string DefaultVault => Settings.GetSetting<string>(DefaultVaultId)?.Trim() ?? string.Empty;
+
+    public int GeneratedPasswordLength =>
+        int.TryParse(Settings.GetSetting<string>(PasswordLengthId), NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
+            ? Math.Clamp(n, 8, 128)
+            : 20;
 
     private static string SettingsJsonPath()
     {

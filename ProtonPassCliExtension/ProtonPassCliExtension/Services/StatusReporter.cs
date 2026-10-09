@@ -34,7 +34,8 @@ internal static class StatusReporter
         }
     }
 
-    public static void Show(PassCliError error) => Show(Describe(error));
+    public static void Show(PassCliError error) =>
+        Show(Describe(error), error.Kind is PassCliErrorKind.NoTotp or PassCliErrorKind.FieldNotFound ? MessageState.Warning : MessageState.Error);
 
     /// <summary>Hides the current status message, if any (for example after a successful reload).</summary>
     public static void Hide()

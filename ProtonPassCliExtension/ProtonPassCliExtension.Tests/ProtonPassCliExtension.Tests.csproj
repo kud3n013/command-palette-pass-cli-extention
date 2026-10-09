@@ -26,6 +26,7 @@
     <Compile Include="..\ProtonPassCliExtension\Services\IClipboard.cs" LinkBase="Services" />
     <Compile Include="..\ProtonPassCliExtension\Services\ItemCache.cs" LinkBase="Services" />
     <Compile Include="..\ProtonPassCliExtension\Services\ItemLoader.cs" LinkBase="Services" />
+    <Compile Include="..\ProtonPassCliExtension\Services\QueryMatcher.cs" LinkBase="Services" />
   </ItemGroup>
 
   <ItemGroup>
